@@ -1,0 +1,100 @@
+DEBUG:root:Connection Successful at Fri Sep  1 10:01:17 2017
+DEBUG:root:Vents Opened at (10:01:18)
+DEBUG:root:vents_open at Fri Sep  1 10:01:18 2017
+DEBUG:root:Vents Closed at (10:01:19)
+DEBUG:root:vents_close at Fri Sep  1 10:01:19 2017
+DEBUG:root:Main Closed at (10:01:19)
+DEBUG:root:main_close at Fri Sep  1 10:01:19 2017
+DEBUG:root:HGPS ON at (10:01:20)
+DEBUG:root:HGPS_On at Fri Sep  1 10:01:20 2017
+DEBUG:root:HGPS OFF at (10:01:21)
+DEBUG:root:HGPS_Off at Fri Sep  1 10:01:21 2017
+DEBUG:root:Launching at Fri Sep  1 10:01:25 2017
+DEBUG:root:launch at Fri Sep  1 10:01:25 2017
+DEBUG:root:Aborting at (10:01:27)
+DEBUG:root:abort at Fri Sep  1 10:01:27 2017
+DEBUG:root:Igniting at (10:01:29)
+DEBUG:root:ign1_on at Fri Sep  1 10:01:29 2017
+DEBUG:root:Ignitor Off at (10:01:30)
+DEBUG:root:ign1_off at Fri Sep  1 10:01:30 2017
+DEBUG:root:Boosters On at (10:01:31)
+DEBUG:root:Boosters On at Fri Sep  1 10:01:31 2017
+DEBUG:root:Boosters Off at (10:01:32)
+DEBUG:root:Boosters Off at Fri Sep  1 10:01:32 2017
+DEBUG:root:Vents Closed at (10:01:34)
+DEBUG:root:vents_close at Fri Sep  1 10:01:34 2017
+DEBUG:root:HGPS ON at (10:01:34)
+DEBUG:root:HGPS_On at Fri Sep  1 10:01:34 2017
+DEBUG:root:Main Closed at (10:01:35)
+DEBUG:root:main_close at Fri Sep  1 10:01:35 2017
+DEBUG:root:HGPS OFF at (10:01:35)
+DEBUG:root:HGPS_Off at Fri Sep  1 10:01:35 2017
+DEBUG:root:Reading at (10:01:39)
+DEBUG:root:Started Get Info Timer at (10:01:39)
+DEBUG:root:Vents Opened at (10:03:05)
+DEBUG:root:vents_open at Fri Sep  1 10:03:05 2017
+DEBUG:root:Vents Closed at (10:03:06)
+DEBUG:root:vents_close at Fri Sep  1 10:03:06 2017
+DEBUG:root:Main Closed at (10:03:16)
+DEBUG:root:main_close at Fri Sep  1 10:03:16 2017
+DEBUG:root:HGPS ON at (10:03:16)
+DEBUG:root:HGPS_On at Fri Sep  1 10:03:16 2017
+DEBUG:root:HGPS OFF at (10:03:17)
+DEBUG:root:HGPS_Off at Fri Sep  1 10:03:17 2017
+DEBUG:root:Igniting at (10:03:19)
+DEBUG:root:ign1_on at Fri Sep  1 10:03:19 2017
+DEBUG:root:Ignitor Off at (10:03:20)
+DEBUG:root:ign1_off at Fri Sep  1 10:03:20 2017
+DEBUG:root:Launching at Fri Sep  1 10:03:21 2017
+DEBUG:root:launch at Fri Sep  1 10:03:21 2017
+DEBUG:root:Aborting at (10:03:22)
+DEBUG:root:abort at Fri Sep  1 10:03:22 2017
+DEBUG:root:Boosters On at (10:03:23)
+DEBUG:root:Boosters On at Fri Sep  1 10:03:23 2017
+DEBUG:root:Igniting at (10:03:25)
+DEBUG:root:ign1_on at Fri Sep  1 10:03:25 2017
+DEBUG:root:Launching at Fri Sep  1 10:03:26 2017
+DEBUG:root:launch at Fri Sep  1 10:03:26 2017
+DEBUG:root:Aborting at (10:03:27)
+DEBUG:root:abort at Fri Sep  1 10:03:27 2017
+DEBUG:root:Launching at Fri Sep  1 10:03:31 2017
+DEBUG:root:launch at Fri Sep  1 10:03:31 2017
+DEBUG:root:Igniting at (10:03:32)
+DEBUG:root:ign1_on at Fri Sep  1 10:03:32 2017
+DEBUG:root:Ignitor Off at (10:03:33)
+DEBUG:root:ign1_off at Fri Sep  1 10:03:33 2017
+DEBUG:root:Boosters On at (10:03:33)
+DEBUG:root:Boosters On at Fri Sep  1 10:03:33 2017
+DEBUG:root:Boosters Off at (10:03:35)
+DEBUG:root:Boosters Off at Fri Sep  1 10:03:35 2017
+DEBUG:root:HGPS OFF at (10:03:37)
+DEBUG:root:HGPS_Off at Fri Sep  1 10:03:37 2017
+DEBUG:root:HGPS ON at (10:03:37)
+DEBUG:root:HGPS_On at Fri Sep  1 10:03:37 2017
+DEBUG:root:Main Closed at (10:03:38)
+DEBUG:root:main_close at Fri Sep  1 10:03:38 2017
+DEBUG:root:Vents Closed at (10:03:38)
+DEBUG:root:vents_close at Fri Sep  1 10:03:38 2017
+DEBUG:root:Vents Opened at (10:03:39)
+DEBUG:root:vents_open at Fri Sep  1 10:03:39 2017
+DEBUG:root:Connection Successful at Fri Sep  1 10:03:42 2017
+DEBUG:root:Vents Opened at (10:03:43)
+DEBUG:root:vents_open at Fri Sep  1 10:03:43 2017
+DEBUG:root:Vents Closed at (10:03:43)
+DEBUG:root:vents_close at Fri Sep  1 10:03:43 2017
+DEBUG:root:HGPS ON at (10:03:45)
+DEBUG:root:HGPS_On at Fri Sep  1 10:03:45 2017
+DEBUG:root:Launching at Fri Sep  1 10:03:50 2017
+DEBUG:root:launch at Fri Sep  1 10:03:50 2017
+DEBUG:root:Connection Successful at Fri Sep  1 10:03:54 2017
+DEBUG:root:Aborting at (10:03:55)
+DEBUG:root:abort at Fri Sep  1 10:03:55 2017
+DEBUG:root:Vents Opened at (10:07:31)
+DEBUG:root:vents_open at Fri Sep  1 10:07:31 2017
+DEBUG:root:Vents Closed at (10:07:32)
+DEBUG:root:vents_close at Fri Sep  1 10:07:32 2017
+DEBUG:root:Pinging Server at Fri Sep  1 10:07:35 2017
+DEBUG:root:Ping_Unsucessful at Fri Sep  1 10:07:36 2017
+DEBUG:root:Connection Successful at Fri Sep  1 10:07:48 2017
+DEBUG:root:Pinging Server at Fri Sep  1 10:07:51 2017
+DEBUG:root:Ping_Sucessful at Fri Sep  1 10:07:52 2017
