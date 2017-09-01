@@ -1,5 +1,0 @@
-DEBUG:root:Connection Successful at Tue Aug 29 16:41:47 2017
-DEBUG:root:Reading at (16:41:51)
-DEBUG:root:Started Get Info Timer at (16:41:51)
-ERROR:root:Tue, 29 Aug 2017 16:41:51,'LaunchControl' object has no attribute 's'
-DEBUG:root:Tue, 29 Aug 2017 16:41:51,'LaunchControl' object has no attribute 's'

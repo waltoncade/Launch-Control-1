@@ -17,12 +17,13 @@ class Client(QMainWindow):
         self.launch_control = LaunchControl()
         #self.setGeometry(325,40,1300,1000)
         self.title = 'Launch Control Client'
-        #self.setFixedSize(1225,950)
-        self.showFullScreen()
+        self.setFixedSize(1225,950)
+        #self.showFullScreen()
 
         self.setWindowTitle(self.title)
         self.setWindowIcon(QIcon('pictures/icon.png'))
         #self.setFixedSize(1030, 800)
+
 
         self.client_settings = ClientSettings()
 

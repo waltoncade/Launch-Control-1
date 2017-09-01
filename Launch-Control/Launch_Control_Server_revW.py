@@ -1,5 +1,4 @@
 import time 
-import socket
 import datetime
 import os
 import RPi.GPIO as GPIO
@@ -10,6 +9,7 @@ from thread import *
 #import Adafruit_MAX31855.MAX31855 as MAX31855
 import threading
 import logging
+import paho.mqtt.client as mqtt
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 # TCP Connection Settings
@@ -22,28 +22,38 @@ import logging
 
 print ("\nLaunch Control Server Initialized.")
 
-#TCP_IP = "192.168.1.127"
-#TCP_IP = "192.168.1.33" #Server IP, not client IP.
-#TCP_IP = "10.240.232.136"
-#TCP_PORT = 5000
-#BUF = 1024
-HOST = '192.168.0.21'
-PORT = 5002
-BUF = 1024
-tot_socket = 1
-list_sock = []
+HOST = "192.168.1.228"
+TOPIC_1 = "Valve_States"
+TOPIC_2 = "Pressure_Readings"
 
-print (("Please connect client software to: %s at port: %d \n") % (HOST, PORT))
+print (("Please connect client software to: %s at port: %d \n") % (HOST, 1883))
 print ("Waiting to establish connection........ \n")
 
-for i in range(tot_socket):
-	s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-	s.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,1)
-	#s.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
-	s.bind((HOST,PORT+i))
-	s.listen(2)
-	list_sock.append(s)
-	print ("Server is listening on {} {}".format(HOST, (PORT+i)))
+def on_connect(client, userdata, flags, rc):
+	print("Connected with result code "+str(rc))
+	error = rc
+	client.subscribe(TOPIC_1)
+	return error
+
+def on_disconnect(client, userdata,rc=0):
+	print("Connection Lost.")
+	client.loop_stop()
+
+def on_message(client, userdata, msg):
+	calldata(str(msg.payload))
+
+client = mqtt.Client()
+client.on_connect = on_connect
+client.on_message = on_message
+#client.on_publish = on_publish
+client.on_disconnect = on_disconnect
+client.connect(HOST, 1883, 60)
+
+print ("Connection established.")
+#print ('Connection address: ',addr)
+#logger.debug("Connection established at {}".format(time.asctime())) #find what the ip is
+print ("Awaiting commands... \n")
+
 
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
@@ -144,7 +154,7 @@ def Thermo_read():
 		temp = sensor.readTempC()
 		internal = sensor.readInternalC()
 		Temperature = c_to_f(temp)
-		conn.send(str(Temperature))
+		client.publish(TOPIC_1,'1'+str(Temperature))
 
 		return
 
@@ -156,12 +166,12 @@ def Breakwire_read():
 
 	if GPIO.input(b_wire) == True:
 		bwire = 'Intact'
-		conn.send(str(bwire))
+		client.publish(TOPIC_1,'2'+str(bwire))
 		#print "sent b_wire status"
 		logger.debug("sent b_wire status of {} at {}".format(str(bwire), time.asctime()))
 	elif GPIO.input(b_wire) == False:
 		bwire = 'Broken'
-		conn.send(str(bwire))
+		client.publish(TOPIC_1,'2'+str(bwire))
 		#print "Sent b_wire status of {}".format(bwire)
 		logger.debug("Sent b_wire status of {} at {}".format(str(bwire), time.asctime()))
 	return
@@ -174,14 +184,14 @@ def Main_Valve_Sensor():
 		main_status = 'Open'
 		#print "main is open: sending status"
 		logger.debug("main is open: sending main_status at {}".format(time.asctime()))
-		conn.send(str(main_status))
+		client.publish(TOPIC_1,'3'+str(main_status))
 		#print "Sent status of {}".format(main_status)
 		logger.debug("Sent main_status(open) of {} at {}".format(str(main_status), time.asctime()))
 	elif GPIO.input(r_main) == False:
 		main_status = 'Closed'
 		#print "main is closed: sending status"
 		logger.debug("main is closed: sending main_status at {}".format(time.asctime()))
-		conn.send(str(main_status))
+		client.publish(TOPIC_1,'3'+str(main_status))
 		#print "Sent status of {}".format(main_status)
 		logger.debug("Sent main_status(closed) of {} at {}".format(str(main_status), time.asctime()))
 	return
@@ -192,11 +202,11 @@ def LOX_Valve_Sensor():
 
 	if GPIO.input(r_LOX) == True:
 		LOX_status = 'Open'
-		conn.send(str(LOX_status))
+		client.publish(TOPIC_1,'4'+str(LOX_status))
 		logger.debug("Sent LOX_status(open) of {} at {}".format(str(LOX_status), time.asctime()))
 	elif GPIO.input(r_LOX) == False:
 		LOX_status = 'Closed'
-		conn.send(str(LOX_status))
+		client.publish(TOPIC_1,'4'+str(LOX_status))
 		logger.debug("Sent LOX_status(closed) of {} at {}".format(str(LOX_status), time.asctime()))
 	return
 
@@ -206,13 +216,14 @@ def Kero_Valve_Sensor():
 
 	if GPIO.input(r_kero) == True:
 		kero_status = 'Open'
-		conn.send(str(kero_status))
+		client.publish(TOPIC_1,'5'+str(kero_status))
 		logger.debug("Sent: kero_status(open) of {} at {}".format(str(kero_status), time.asctime()))
 	elif GPIO.input(r_kero) == False:
 		kero_status = 'Closed'
-		conn.send(str(kero_status))
+		client.publish(TOPIC_1,'5'+str(kero_status))
 		logger.debug("Sent kero_status(closed) of {} at {}".format(str(kero_status), time.asctime()))
 	return
+
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 # Relay and Communication
@@ -227,25 +238,25 @@ def Kero_Valve_Sensor():
 def PoE_Switch_On():
 	GPIO.output(PoE_1,True)
 	GPIO.output(PoE_2,True)
-	conn.send("Switching power to onboard control.")
+	client.publish(TOPIC_1,"Switching power to onboard control.")
 	return
 
 def PoE_Switch_Off():
 	GPIO.output(PoE_1,False)
 	GPIO.output(PoE_2,False)
-	conn.send("Switching power to launch control system.")
+	client.publish(TOPIC_1,"Switching power to launch control system.")
 	return
 
 def boosters_lit():
 
 	GPIO.output(bstr,True)
-	conn.send("Boosters Lit")
+	client.publish(TOPIC_1,"Boosters Lit")
 	return
 
 def boosters_off():
 
 	GPIO.output(bstr,False)
-	conn.send("Boosters Off")
+	client.publish(TOPIC_1,"Boosters Off")
 	return
 
 def ignitor_one_on():
@@ -254,7 +265,7 @@ def ignitor_one_on():
 	# GPIO.output(27,True)
 
 	GPIO.output(ign1,True)
-	conn.send("Ignitor 1 Lit")
+	client.publish(TOPIC_1,"Ignitor 1 Lit")
 	return
 
 def ignitor_one_off():
@@ -263,50 +274,50 @@ def ignitor_one_off():
 	# GPIO.output(27,False)
 
 	GPIO.output(ign1,False)
-	conn.send("Ignitor 1 Off")
+	client.publish(TOPIC_1,"Ignitor 1 Off")
 	return
 
 def ignitor_two_on():
 
 	GPIO.output(ign2,True)
-	conn.send("Ignitor 2 Lit")
+	client.publish(TOPIC_1,"Ignitor 2 Lit")
 	return
 
 def ignitor_two_off():
 
 	GPIO.output(ign2,False)
-	conn.send("Ignitor 2 Off")
+	client.publish(TOPIC_1,"Ignitor 2 Off")
 	return
 
 def main_open():
 
 	GPIO.output(main,True)
-	conn.send("Main Valve Opened")
+	client.publish(TOPIC_1,"Main Valve Opened")
 	return
 
 def main_close():
 
 	GPIO.output(main,False)
-	conn.send("Main Valve Closed")
+	client.publish(TOPIC_1,"Main Valve Closed")
 	return
 
 def vent_open():
 
 	GPIO.output(vnts,False)
-	conn.send("Vents Opened")
+	client.publish(TOPIC_1,"Vents Opened")
 	return
 
 def vent_close():
 
 	GPIO.output(vnts,True)
-	conn.send("Vents Closed")
+	client.publish(TOPIC_1,"Vents Closed")
 	return
 
 def launch():
 
 	GPIO.output(main,True)
 	GPIO.output(bstr,True)
-	conn.send("Launch!")
+	client.publish(TOPIC_1,"Launch!")
 	return
 
 def abort():
@@ -315,7 +326,7 @@ def abort():
 	GPIO.output(bstr,False)
 	GPIO.output(main,False)
 	GPIO.output(vnts,True)
-	conn.send("Launch Aborted")
+	client.publish(TOPIC_1,"Launch Aborted")
 	return
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
@@ -328,111 +339,86 @@ def abort():
 # function listed above. If sensor information is requested, new threads are started that
 # use the target function specified to send sensor information back to the client software.
 
-def clientthread(conn):
-    buffer=""
-    while True:
-        data = conn.recv(1024)
-        buffer+=data
-        print buffer
-    #conn.sendall(reply)
-    conn.close()
 
-while True:
+def calldata(data):
+
+	if 'boosters_lit' in data:
+		print ("Received data: ",data)
+		boosters_lit()
+
+	elif 'boosters_off' in data:
+		print ("Received data: ", data)
+		boosters_off()
 	
-	for j in range(len(list_sock)):
-		conn,addr = list_sock[j].accept()
-		print ('Connected with ' + addr[0] + ':' + str(addr[1]))
-		start_new_thread(clientthread ,(conn,))
+	elif 'rocket_power' in data:
+		print ("Received data: ", data)
+		PoE_Switch_On()
 
-	print ("Connection established.")
-	#print ('Connection address: ',addr)
-	#logger.debug("Connection established at {}".format(time.asctime())) #find what the ip is
-	print ("Awaiting commands... \n")
+	elif 'esb_power' in data:
+		print ("Received data: ", data)
+		PoE_Switch_Off()
+	
+	elif 'ign1_on' in data:
+		print ("Received data: ", data)
+		ignitor_one_on()
+	
+	elif 'ign1_off' in data:
+		print ("Received data: ", data)
+		ignitor_one_off()
 
+	elif 'ign2_on' in data:
+		print ("Received data: ", data)
+		ignitor_two_on()
+	
+	elif 'ign2_off' in data:
+		print ("Received data: ", data)
+		ignitor_two_off()
+	
+	elif 'vents_open' in data:
+		print ("Received data: ", data)
+		vent_open()
 
-	while True:
-		data = conn.recv(BUF)
-		if not data: break
+	elif 'vents_close' in data:
+		print ("Received data: ", data)
+		vent_close()
+	
+	elif 'main_open' in data:
+		print ("Received data: ", data)
+		main_open()
 
-		if 'boosters_lit' in data:
-			print ("Received data: ",data)
-			boosters_lit()
+	elif 'main_close' in data:
+		print ("Received data: ", data)
+		main_close()
 
-		elif 'boosters_off' in data:
-			print ("Received data: ", data)
-			boosters_off()
+	elif 'launch' in data:
+		print ("Received data: ", data)
+		launch()
+
+	elif 'abort' in data:
+		print ("Received data: ", data)
+		abort()
 		
-		elif 'rocket_power' in data:
-			print ("Received data: ", data)
-			PoE_Switch_On()
-
-		elif 'esb_power' in data:
-			print ("Received data: ", data)
-			PoE_Switch_Off()
+	elif 'temp_status' in data:
+		thermo_trd = threading.Thread(target=Thermo_read())
+		thermo_trd.start()
 		
-		elif 'ign1_on' in data:
-			print ("Received data: ", data)
-			ignitor_one_on()
-		
-		elif 'ign1_off' in data:
-			print ("Received data: ", data)
-			ignitor_one_off()
+	elif 'bwire_status' in data:
+		bwire_trd = threading.Thread(target=Breakwire_read())
+		bwire_trd.start()
 
-		elif 'ign2_on' in data:
-			print ("Received data: ", data)
-			ignitor_two_on()
-		
-		elif 'ign2_off' in data:
-			print ("Received data: ", data)
-			ignitor_two_off()
-		
-		elif 'vents_open' in data:
-			print ("Received data: ", data)
-			vent_open()
+	elif 'main_status' in data:
+		r_main_trd = threading.Thread(target=Main_Valve_Sensor())
+		r_main_trd.start()
 
-		elif 'vents_close' in data:
-			print ("Received data: ", data)
-			vent_close()
-		
-		elif 'main_open' in data:
-			print ("Received data: ", data)
-			main_open()
+	elif 'kero_status' in data:
+		r_kero_trd = threading.Thread(target=Kero_Valve_Sensor())
+		r_kero_trd.start()
 
-		elif 'main_close' in data:
-			print ("Received data: ", data)
-			main_close()
+	elif 'LOX_status' in data:
+		r_LOX_trd = threading.Thread(target=LOX_Valve_Sensor())
+		r_LOX_trd.start()
 
-		elif 'launch' in data:
-			print ("Received data: ", data)
-			launch()
-
-		elif 'abort' in data:
-			print ("Received data: ", data)
-			abort()
-			
-		elif 'temp_status' in data:
-			thermo_trd = threading.Thread(target=Thermo_read())
-			thermo_trd.start()
-			
-		elif 'bwire_status' in data:
-			bwire_trd = threading.Thread(target=Breakwire_read())
-			bwire_trd.start()
-
-		elif 'main_status' in data:
-			r_main_trd = threading.Thread(target=Main_Valve_Sensor())
-			r_main_trd.start()
-
-		elif 'kero_status' in data:
-			r_kero_trd = threading.Thread(target=Kero_Valve_Sensor())
-			r_kero_trd.start()
-
-		elif 'LOX_status' in data:
-			r_LOX_trd = threading.Thread(target=LOX_Valve_Sensor())
-			r_LOX_trd.start()
-
-	print("connection closing... \n")
-	conn.close()
-			
+client.loop_forever()
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 # End Script
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#

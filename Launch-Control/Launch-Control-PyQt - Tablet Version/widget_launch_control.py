@@ -2,14 +2,10 @@ import sys
 import time
 import logging
 import threading
-import socket
 import subprocess
 from datetime import datetime
 from PyQt5 import QtCore, QtWidgets, QtGui, Qt
-
-server_IP = '192.168.0.21'  # This is the IP of the ESB Pi. It is a static IP.
-port = 5002 #Port Number, one port number is picked for each device that is connected to server.
-BUFF = 1024
+import paho.mqtt.client as mqtt
 
 #Sets up logging
 logname = time.strftime("log/LC_ClientLog(%H_%M_%S).log", time.localtime())
@@ -27,8 +23,10 @@ class LaunchControl(QtWidgets.QWidget):
 
         super().__init__()
 
-        self.server_address = (server_IP,port)
         self.connection_status = False
+        self.HOST = "192.168.1.228"
+        self.TOPIC_1 = "Valve_States"
+        self.TOPIC_2 = "Pressure_Readings"
 
         self.init_ui()
 
@@ -54,7 +52,6 @@ class LaunchControl(QtWidgets.QWidget):
         # time_thread = threading.Thread(target = self.get_time)
         # time_thread.start()
 
-        self.server_address = (server_IP, port)
         self.connection_status = False  # initialzing to a false connection state
         self.arm_status = False
 
@@ -308,42 +305,15 @@ class LaunchControl(QtWidgets.QWidget):
     def read_app(self):
         # Application that reads the status's for the valve states (Used when Read Status's Button is pressed)
         if self.connection_status == True:
+            self.infotimer = QtCore.QTimer()
+            self.infotimer.timeout.connect(self.send_info_stat)
+            self.infotimer.setInterval(200)
+            self.infotimer.start()
             self.logTextBox.append("  >  Reading{}".format(time.strftime("\t     -\t(%H:%M:%S)", time.localtime())))
             logger.debug("Reading at {}".format(time.strftime("(%H:%M:%S)", time.localtime())))
 
-            self.infotimer = QtCore.QTimer()
-            self.infotimer.timeout.connect(self.get_info)
-            self.infotimer.setInterval(200)
-            self.infotimer.start()
-            self.logTextBox.append(" > Starting Get Info Timer{}".format(time.strftime("\t     -\t(%H:%M:%S)", time.localtime())))
-            logger.debug("Started Get Info Timer at {}".format(time.strftime("(%H:%M:%S)", time.localtime())))
-
         elif self.connection_status == False:
             QtWidgets.QMessageBox.information(self, 'Connection Results', 'You are not connected, please connect and try again.')
-
-
-    def connect_app(self):
-        # Application that connects the client to the server (Used when Connect Button is pressed)
-        self.logTextBox.append("  >  Connecting...{}".format(time.strftime("\t     -\t(%H:%M:%S)", time.localtime())))
-
-        try:
-            self.s = socket.create_connection(self.server_address,timeout = 1.5)
-            QtWidgets.QMessageBox.information(self, 'Connection Results', 'Socket Successfully Bound.\nClick "Read Statuses " to start')
-            self.connection_status = True
-            self.sdsulogo.setPixmap(QtGui.QPixmap('pictures/sdsu2green.png'))
-            self.redcircle.setPixmap(QtGui.QPixmap('pictures/greencircle.png'))
-            self.logTextBox.append("  >  Connected{}".format(time.strftime("\t     -\t(%H:%M:%S)", time.localtime())))
-            logger.debug("Connection Successful at {}".format(time.asctime()))
-
-        except socket.error as e:
-            logger.debug("Connection Unsuccessful at {}".format(time.strftime("(%H:%M:%S)", time.localtime())))
-            reply = QtWidgets.QMessageBox.critical(self, "Connection Results", "Couldn't connect to {} at {}. Error is: \n{}.\nMake sure server is listening.".format(self.server_address[0],self.server_address[1],e),
-                                                    QtWidgets.QMessageBox.Cancel | QtWidgets.QMessageBox.Retry)
-            if reply == QtWidgets.QMessageBox.Cancel:
-                self.logTextBox.append("  >  Connection Canceled{}".format(time.strftime(" -\t(%H:%M:%S)", time.localtime())))
-            elif reply == QtWidgets.QMessageBox.Retry:
-                self.connect_app()
-
 
     def openvents_app(self):
         # Application that opens vents (Used when the Open Vents Button is pushed)
@@ -394,16 +364,16 @@ class LaunchControl(QtWidgets.QWidget):
         # Application that pings the server (Used when the Ping Server Button is pushed)
         QtWidgets.QMessageBox.information(self, '', 'Pinging...')
         #response = subprocess.call(["ping", server_IP,"-c1", "-W1","-q"]) #This is Linux syntax.
-        response = subprocess.call("ping {} -n 1 -w 1".format(server_IP)) #This is Windows syntax.
+        response = subprocess.call("ping {} -n 1 -w 1".format(self.HOST)) #This is Windows syntax.
         logger.debug("Pinging Server at {}".format(time.asctime()))
         self.logTextBox.append("  >  Pinging Server{}".format(time.strftime("    -\t(%H:%M:%S)", time.localtime())))
 
         if response == 0:
-            QtWidgets.QMessageBox.information(self, 'Ping Results', 'Ping to {} sucessful!\nGo ahead and connect.'.format(server_IP))
+            QtWidgets.QMessageBox.information(self, 'Ping Results', 'Ping to {} sucessful!\nGo ahead and connect.'.format(self.HOST))
             logger.debug("Ping_Sucessful at {}".format(time.asctime()))
             self.logTextBox.append("  >  Pinging Successful{}".format(time.strftime(" -\t(%H:%M:%S)", time.localtime())))
         else:
-            QtWidgets.QMessageBox.information(self, 'Ping Results', "Ping to {} unsucessful!\nCheck the IP you're connecting to, or if server is online.".format(server_IP))
+            QtWidgets.QMessageBox.information(self, 'Ping Results', "Ping to {} unsucessful!\nCheck the IP you're connecting to, or if server is online.".format(self.HOST))
             logger.debug("Ping_Unsucessful at {}".format(time.asctime()))
             self.logTextBox.append("  >  Pinging Unsucessful{}".format(time.strftime(" -\t(%H:%M:%S)", time.localtime())))
 
@@ -446,40 +416,98 @@ class LaunchControl(QtWidgets.QWidget):
             message = b'boosters_off'
             logger.debug("Boosters Off at {}".format(time.asctime()))
 
-        self.s.send(message)
-        data = self.s.recv(BUFF)
-        time_now = time.strftime("%a, %d %b %Y %H:%M:%S", time.localtime())
-        if data.decode("utf-8") == 'Ignitor 1 Lit': #Changes status of ignitor to lit af
+        self.client.publish(self.TOPIC_1,message)
+
+    def get_info_2(self, data):
+
+        if data == 'Ignitor 1 Lit': #Changes status of ignitor to lit af
             time_now = time.strftime("%a, %d %b %Y %H:%M:%S", time.localtime())
             self.statusignitorred.setPixmap(QtGui.QPixmap('pictures/statgreen.png'))
             self.ignitorstatuschange.setText('Lit af')
             logging.info("Ignitor 1 lit: {}".format(time_now))
             logger.debug("Ignitor_1_lit at {}".format(time.asctime()))
 
-        elif data.decode("utf-8") == 'Ignitor 1 Off': #Changes status of ignitor to Not Lit
+        elif data == 'Ignitor 1 Off': #Changes status of ignitor to Not Lit
             self.statusignitorred.setPixmap(QtGui.QPixmap('pictures/statred.png'))
             self.ignitorstatuschange.setText('Not Lit')
             logger.debug("Ignitor_1_Off at {}".format(time.asctime()))
 
-        elif data.decode("utf-8") == 'Ignitor 2 Lit': #Changes status of Hgps to On
+        elif data == 'Ignitor 2 Lit': #Changes status of Hgps to On
             self.statushgpscolor.setPixmap(QtGui.QPixmap('pictures/statgreen.png'))
             self.hgpsstatuschange.setText('On')
             logger.debug("HGPS On at {}".format(time.asctime()))
 
-        elif data.decode("utf-8") == 'Ignitor 2 Off': #Changes status of Hgps to Off
+        elif data == 'Ignitor 2 Off': #Changes status of Hgps to Off
             self.statushgpscolor.setPixmap(QtGui.QPixmap('pictures/statred.png'))
             self.hgpsstatuschange.setText('Off')
             logger.debug("HGPS Off at {}".format(time.asctime()))
 
-        elif data.decode("utf-8") == 'Boosters Lit': #Changes status of Boosters to On
+        elif data == 'Boosters Lit': #Changes status of Boosters to On
             #self.statushgpscolor.setPixmap(QtGui.QPixmap('pictures/statgreen.png'))
             #self.hgpsstatuschange.setText('On')
             logger.debug("Boosters Lit at {}".format(time.asctime()))
 
-        elif data.decode("utf-8") == 'Boosters Off': #Changes status of Boosters to Off
+        elif data == 'Boosters Off': #Changes status of Boosters to Off
             #self.statushgpscolor.setPixmap(QtGui.QPixmap('pictures/statred.png'))
             #self.hgpsstatuschange.setText('Off')
             logger.debug("Boosters Off at {}".format(time.asctime()))
+
+    def send_info_stat(self):
+
+        try:
+            self.client.publish(self.TOPIC_1,b'bwire_status')
+
+            self.client.publish(self.TOPIC_1,b'main_status')
+
+            self.client.publish(self.TOPIC_1,b'kero_status')
+
+            self.client.publish(self.TOPIC_1,b'LOX_status')
+
+        except:
+            print("Not Connected. Make sure server is: {}. Topic is: {}. And that you are connected to the right Wifi.".format(self.HOST, self.TOPIC_1))
+
+    def get_info(self, data):
+        # Receives information from the server and switches the label based on what the client is given
+
+        if int(data[0]) == 1:
+            tdata = data[1:]
+
+        if int(data[0]) == 2:
+            bdata = data[1:]
+
+        if int(data[0]) == 3:
+            mdata = data[1:]
+
+        if int(data[0]) == 4:
+            kdata = data[1:]
+
+        if int(data[0]) == 5:
+            ldata = data[1:]
+
+        #The following if statements call the label to be changed only if the server sends a message that contradicts the current status of the label 
+        if self.bdata != self.breakwirechange.text():
+            self.switch_label("bwire")
+            print("Break Wire Changed:")
+            print(self.bdata)
+            logger.debug("bwire_status of {} at {}".format(str(self.bdata),time.asctime()))
+
+        if self.mdata != self.mainValvechange.text():
+            self.switch_label('main')
+            print("Main Changed")
+            print(self.mdata)
+            logger.debug("main_status of {} at {}".format(str(self.mdata),time.asctime()))
+
+        if self.kdata != self.keroValvechange.text():
+            self.switch_label('kero')
+            print("Kero Changed")
+            print(self.kdata)
+            logger.debug("kero_status of {} at {}".format(str(self.kdata),time.asctime()))
+
+        if self.ldata != self.loxValvechange.text():
+            self.switch_label('lox')
+            print("Lox Changed")
+            print(self.ldata)
+            logger.debug("lox_status of {} at {}".format(str(self.ldata),time.asctime()))
 
     def switch_label(self,label):
 
@@ -524,50 +552,50 @@ class LaunchControl(QtWidgets.QWidget):
                 self.loxValvechange.setText('Open')
                 logger.debug("lox_Open at {}".format(time.asctime()))
 
-    def get_info(self):
-        # Receives information from the server and switches the label based on what the client is given
+    def on_connect(self, client, userdata, flags, rc):
+        print("Connected with result code "+str(rc))
+        self.error = rc
+        return self.error
+
+    def on_disconnect(client, userdata,rc=0):
+        self.sdsulogo.setPixmap(QtGui.QPixmap('pictures/sdsu2.png'))
+        self.redcircle.setPixmap(QtGui.QPixmap('pictures/redcircle.png'))
+        self.logTextBox.append("  >  Connection Lost...{}".format(time.strftime("\t     -\t(%H:%M:%S)", time.localtime())))
+        client.loop_stop()
+
+    def on_message(self, client, userdata, msg):
+        print(str(msg.payload))
+        self.all_data = str(msg.payload)
+        self.get_info(self.all_data)
+        self.get_info_2(self.all_data)
+
+    def connect_app(self):
+        # Application that connects the client to the server (Used when Connect Button is pressed)
+        self.logTextBox.append("  >  Connecting...{}".format(time.strftime("\t     -\t(%H:%M:%S)", time.localtime())))
+
         try:
-            self.s.send(b'bwire_status')
-            self.bdata = self.s.recv(BUFF)
+            self.client = mqtt.Client()
+            self.client.on_connect = self.on_connect
+            self.client.on_message = self.on_message
+            #self.client.on_publish = self.on_publish
+            self.client.on_disconnect = self.on_disconnect
+            self.client.connect(self.HOST, 1883, 60)
+            QtWidgets.QMessageBox.information(self, 'Connection Results', 'Socket Successfully Bound.\nClick "Read Statuses " to start')
+            self.connection_status = True
+            self.sdsulogo.setPixmap(QtGui.QPixmap('pictures/sdsu2green.png'))
+            self.redcircle.setPixmap(QtGui.QPixmap('pictures/greencircle.png'))
+            self.logTextBox.append("  >  Connected{}".format(time.strftime("\t     -\t(%H:%M:%S)", time.localtime())))
+            logger.debug("Connection Successful at {}".format(time.asctime()))
+            self.client.loop_start()
 
-            self.s.send(b'main_status')
-            self.mdata = self.s.recv(BUFF)
-
-            self.s.send(b'kero_status')
-            self.kdata = self.s.recv(BUFF)
-
-            self.s.send(b'LOX_status')
-            self.ldata = self.s.recv(BUFF)
-
-        except (socket.error,AttributeError) as err:
-            time_now = time.strftime("%a, %d %b %Y %H:%M:%S", time.localtime())
-            logging.error("{},{}".format(time_now,err))
-            logger.debug("{},{}".format(time_now,err))
-
-        #The following if statements call the label to be changed only if the server sends a message that contradicts the current status of the label 
-        if self.bdata.decode("utf-8") != self.breakwirechange.text():
-            self.switch_label("bwire")
-            print("Break Wire Changed:")
-            print(self.bdata)
-            logger.debug("bwire_status of {} at {}".format(str(self.bdata),time.asctime()))
-
-        if self.mdata.decode("utf-8") != self.mainValvechange.text():
-            self.switch_label('main')
-            print("Main Changed")
-            print(self.mdata)
-            logger.debug("main_status of {} at {}".format(str(self.mdata),time.asctime()))
-
-        if self.kdata.decode("utf-8") != self.keroValvechange.text():
-            self.switch_label('kero')
-            print("Kero Changed")
-            print(self.kdata)
-            logger.debug("kero_status of {} at {}".format(str(self.kdata),time.asctime()))
-
-        if self.ldata.decode("utf-8") != self.loxValvechange.text():
-            self.switch_label('lox')
-            print("Lox Changed")
-            print(self.ldata)
-            logger.debug("lox_status of {} at {}".format(str(self.ldata),time.asctime()))
+        except:
+            logger.debug("Connection Unsuccessful at {}".format(time.strftime("(%H:%M:%S)", time.localtime())))
+            reply = QtWidgets.QMessageBox.critical(self, "Connection Results", "Couldn't connect to {} at {}.\nMake sure server is listening.".format(self.HOST,1883),
+                                                    QtWidgets.QMessageBox.Cancel | QtWidgets.QMessageBox.Retry)
+            if reply == QtWidgets.QMessageBox.Cancel:
+                self.logTextBox.append("  >  Connection Canceled{}".format(time.strftime(" -\t(%H:%M:%S)", time.localtime())))
+            elif reply == QtWidgets.QMessageBox.Retry:
+                self.connect_app()
 
 
     def close_app(self):
