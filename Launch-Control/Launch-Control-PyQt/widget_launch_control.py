@@ -705,19 +705,19 @@ class LaunchControl(QtWidgets.QWidget):
     def get_info(self, data):
         # Receives information from the server and switches the label based on what the client is given
 
-        if int(data[0]) == 1:
+        if data[0] == '1':
             tdata = data[1:]
 
-        if int(data[0]) == 2:
+        if data[0] == '2':
             bdata = data[1:]
 
-        if int(data[0]) == 3:
+        if data[0] == '3':
             mdata = data[1:]
 
-        if int(data[0]) == 4:
+        if data[0] == '4':
             kdata = data[1:]
 
-        if int(data[0]) == 5:
+        if data[0] == '5':
             ldata = data[1:]
 
         #The following if statements call the label to be changed only if the server sends a message that contradicts the current status of the label 
@@ -790,6 +790,7 @@ class LaunchControl(QtWidgets.QWidget):
 
     def on_connect(self, client, userdata, flags, rc):
         print("Connected with result code "+str(rc))
+        self.client.subscribe(self.TOPIC_1)
         self.error = rc
         return self.error
 

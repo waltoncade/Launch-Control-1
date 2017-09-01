@@ -40,6 +40,7 @@ def on_disconnect(client, userdata,rc=0):
 	client.loop_stop()
 
 def on_message(client, userdata, msg):
+	print(str(msg.payload))
 	calldata(str(msg.payload))
 
 client = mqtt.Client()
