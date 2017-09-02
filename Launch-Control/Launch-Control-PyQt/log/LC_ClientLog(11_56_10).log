@@ -1,0 +1,43 @@
+DEBUG:root:Connection Successful at Sat Sep  2 11:56:17 2017
+DEBUG:root:Reading at (11:56:18)
+DEBUG:root:Started Get Info Timer at (11:56:18)
+DEBUG:root:bwire_Broken at Sat Sep  2 11:56:19 2017
+DEBUG:root:bwire_status of Broken at Sat Sep  2 11:56:19 2017
+DEBUG:root:main_Closed at Sat Sep  2 11:56:19 2017
+DEBUG:root:main_status of Closed at Sat Sep  2 11:56:19 2017
+DEBUG:root:kero_Closed at Sat Sep  2 11:56:19 2017
+DEBUG:root:kero_status of Closed at Sat Sep  2 11:56:19 2017
+DEBUG:root:Launching at Sat Sep  2 11:56:44 2017
+DEBUG:root:launch at Sat Sep  2 11:56:44 2017
+DEBUG:root:Aborting at (11:56:46)
+DEBUG:root:abort at Sat Sep  2 11:56:46 2017
+DEBUG:root:Vents Opened at (11:56:47)
+DEBUG:root:vents_open at Sat Sep  2 11:56:47 2017
+DEBUG:root:Vents Closed at (11:56:47)
+DEBUG:root:vents_close at Sat Sep  2 11:56:47 2017
+DEBUG:root:Vents Opened at (11:57:17)
+DEBUG:root:vents_open at Sat Sep  2 11:57:17 2017
+DEBUG:root:Vents Closed at (11:57:18)
+DEBUG:root:vents_close at Sat Sep  2 11:57:18 2017
+DEBUG:root:HGPS ON at (11:57:20)
+DEBUG:root:HGPS_On at Sat Sep  2 11:57:20 2017
+DEBUG:root:HGPS OFF at (11:57:21)
+DEBUG:root:HGPS_Off at Sat Sep  2 11:57:21 2017
+DEBUG:root:Launching at Sat Sep  2 11:58:32 2017
+DEBUG:root:launch at Sat Sep  2 11:58:32 2017
+DEBUG:root:Vents Opened at (11:58:38)
+DEBUG:root:vents_open at Sat Sep  2 11:58:38 2017
+DEBUG:root:Launching at Sat Sep  2 11:59:37 2017
+DEBUG:root:launch at Sat Sep  2 11:59:37 2017
+DEBUG:root:Aborting at (11:59:39)
+DEBUG:root:abort at Sat Sep  2 11:59:39 2017
+DEBUG:root:Launching at Sat Sep  2 11:59:40 2017
+DEBUG:root:launch at Sat Sep  2 11:59:40 2017
+DEBUG:root:Main Closed at (11:59:42)
+DEBUG:root:main_close at Sat Sep  2 11:59:42 2017
+DEBUG:root:Vents Opened at (11:59:45)
+DEBUG:root:vents_open at Sat Sep  2 11:59:45 2017
+DEBUG:root:Vents Closed at (11:59:46)
+DEBUG:root:vents_close at Sat Sep  2 11:59:46 2017
+DEBUG:root:Launching at Sat Sep  2 11:59:52 2017
+DEBUG:root:launch at Sat Sep  2 11:59:52 2017

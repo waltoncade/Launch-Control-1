@@ -1,0 +1,9 @@
+DEBUG:root:Connection Successful at Sat Sep  2 10:51:36 2017
+DEBUG:root:Vents Opened at (10:51:43)
+DEBUG:root:vents_open at Sat Sep  2 10:51:43 2017
+DEBUG:root:Vents Closed at (10:51:45)
+DEBUG:root:vents_close at Sat Sep  2 10:51:45 2017
+DEBUG:root:Main Closed at (10:51:47)
+DEBUG:root:main_close at Sat Sep  2 10:51:47 2017
+DEBUG:root:HGPS OFF at (10:51:50)
+DEBUG:root:HGPS_Off at Sat Sep  2 10:51:50 2017

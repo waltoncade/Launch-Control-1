@@ -15,16 +15,17 @@ import paho.mqtt.client as mqtt
 # TCP Connection Settings
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 
-# the commented out IP address is the one I was using to test at home
-# 0.0.0.0 is the setting you want to use to grab all IP's associated with the interfaces on the Pi
-# leave port as 4 digit number as computer will no automatically allocate ports in this range
-# leave BUF as 1024; this defines the size of the data that you will receive
+# there are two topics with two sub-topics each. Each sub-topic has a name, of which describes who is PUBLISHING to that topic
+# for example, the ESB pi publishes valve states on TOPIC_2 ("Valve_States/Servers") and the Client publishes commands on
+# TOPIC_1 ("Valve_States/Clients")
 
 print ("\nLaunch Control Server Initialized.")
 
 HOST = "192.168.1.228"
-TOPIC_1 = "Valve_States"
-TOPIC_2 = "Pressure_Readings"
+TOPIC_1 = "Valve_States/Clients"
+TOPIC_2 = "Valve_States/Servers"
+TOPIC_3 = "Pressure_Readings/Clients"
+TOPIC_4 = "Pressure_Readings/Servers"
 
 print (("Please connect client software to: %s at port: %d \n") % (HOST, 1883))
 print ("Waiting to establish connection........ \n")
@@ -40,7 +41,6 @@ def on_disconnect(client, userdata,rc=0):
 	client.loop_stop()
 
 def on_message(client, userdata, msg):
-	print(str(msg.payload))
 	calldata(str(msg.payload))
 
 client = mqtt.Client()
@@ -155,7 +155,7 @@ def Thermo_read():
 		temp = sensor.readTempC()
 		internal = sensor.readInternalC()
 		Temperature = c_to_f(temp)
-		client.publish(TOPIC_1,'1'+str(Temperature))
+		client.publish(TOPIC_2,'1'+str(Temperature))
 
 		return
 
@@ -167,12 +167,12 @@ def Breakwire_read():
 
 	if GPIO.input(b_wire) == True:
 		bwire = 'Intact'
-		client.publish(TOPIC_1,'2'+str(bwire))
+		client.publish(TOPIC_2,'2'+str(bwire))
 		#print "sent b_wire status"
 		logger.debug("sent b_wire status of {} at {}".format(str(bwire), time.asctime()))
 	elif GPIO.input(b_wire) == False:
 		bwire = 'Broken'
-		client.publish(TOPIC_1,'2'+str(bwire))
+		client.publish(TOPIC_2,'2'+str(bwire))
 		#print "Sent b_wire status of {}".format(bwire)
 		logger.debug("Sent b_wire status of {} at {}".format(str(bwire), time.asctime()))
 	return
@@ -185,14 +185,14 @@ def Main_Valve_Sensor():
 		main_status = 'Open'
 		#print "main is open: sending status"
 		logger.debug("main is open: sending main_status at {}".format(time.asctime()))
-		client.publish(TOPIC_1,'3'+str(main_status))
+		client.publish(TOPIC_2,'3'+str(main_status))
 		#print "Sent status of {}".format(main_status)
 		logger.debug("Sent main_status(open) of {} at {}".format(str(main_status), time.asctime()))
 	elif GPIO.input(r_main) == False:
 		main_status = 'Closed'
 		#print "main is closed: sending status"
 		logger.debug("main is closed: sending main_status at {}".format(time.asctime()))
-		client.publish(TOPIC_1,'3'+str(main_status))
+		client.publish(TOPIC_2,'3'+str(main_status))
 		#print "Sent status of {}".format(main_status)
 		logger.debug("Sent main_status(closed) of {} at {}".format(str(main_status), time.asctime()))
 	return
@@ -203,11 +203,11 @@ def LOX_Valve_Sensor():
 
 	if GPIO.input(r_LOX) == True:
 		LOX_status = 'Open'
-		client.publish(TOPIC_1,'4'+str(LOX_status))
+		client.publish(TOPIC_2,'4'+str(LOX_status))
 		logger.debug("Sent LOX_status(open) of {} at {}".format(str(LOX_status), time.asctime()))
 	elif GPIO.input(r_LOX) == False:
 		LOX_status = 'Closed'
-		client.publish(TOPIC_1,'4'+str(LOX_status))
+		client.publish(TOPIC_2,'4'+str(LOX_status))
 		logger.debug("Sent LOX_status(closed) of {} at {}".format(str(LOX_status), time.asctime()))
 	return
 
@@ -217,11 +217,11 @@ def Kero_Valve_Sensor():
 
 	if GPIO.input(r_kero) == True:
 		kero_status = 'Open'
-		client.publish(TOPIC_1,'5'+str(kero_status))
+		client.publish(TOPIC_2,'5'+str(kero_status))
 		logger.debug("Sent: kero_status(open) of {} at {}".format(str(kero_status), time.asctime()))
 	elif GPIO.input(r_kero) == False:
 		kero_status = 'Closed'
-		client.publish(TOPIC_1,'5'+str(kero_status))
+		client.publish(TOPIC_2,'5'+str(kero_status))
 		logger.debug("Sent kero_status(closed) of {} at {}".format(str(kero_status), time.asctime()))
 	return
 
@@ -239,25 +239,25 @@ def Kero_Valve_Sensor():
 def PoE_Switch_On():
 	GPIO.output(PoE_1,True)
 	GPIO.output(PoE_2,True)
-	client.publish(TOPIC_1,"Switching power to onboard control.")
+	client.publish(TOPIC_2,"Switching power to onboard control.")
 	return
 
 def PoE_Switch_Off():
 	GPIO.output(PoE_1,False)
 	GPIO.output(PoE_2,False)
-	client.publish(TOPIC_1,"Switching power to launch control system.")
+	client.publish(TOPIC_2,"Switching power to launch control system.")
 	return
 
 def boosters_lit():
 
 	GPIO.output(bstr,True)
-	client.publish(TOPIC_1,"Boosters Lit")
+	client.publish(TOPIC_2,"Boosters Lit")
 	return
 
 def boosters_off():
 
 	GPIO.output(bstr,False)
-	client.publish(TOPIC_1,"Boosters Off")
+	client.publish(TOPIC_2,"Boosters Off")
 	return
 
 def ignitor_one_on():
@@ -266,7 +266,7 @@ def ignitor_one_on():
 	# GPIO.output(27,True)
 
 	GPIO.output(ign1,True)
-	client.publish(TOPIC_1,"Ignitor 1 Lit")
+	client.publish(TOPIC_2,"Ignitor 1 Lit")
 	return
 
 def ignitor_one_off():
@@ -275,50 +275,50 @@ def ignitor_one_off():
 	# GPIO.output(27,False)
 
 	GPIO.output(ign1,False)
-	client.publish(TOPIC_1,"Ignitor 1 Off")
+	client.publish(TOPIC_2,"Ignitor 1 Off")
 	return
 
 def ignitor_two_on():
 
 	GPIO.output(ign2,True)
-	client.publish(TOPIC_1,"Ignitor 2 Lit")
+	client.publish(TOPIC_2,"Ignitor 2 Lit")
 	return
 
 def ignitor_two_off():
 
 	GPIO.output(ign2,False)
-	client.publish(TOPIC_1,"Ignitor 2 Off")
+	client.publish(TOPIC_2,"Ignitor 2 Off")
 	return
 
 def main_open():
 
 	GPIO.output(main,True)
-	client.publish(TOPIC_1,"Main Valve Opened")
+	client.publish(TOPIC_2,"Main Valve Opened")
 	return
 
 def main_close():
 
 	GPIO.output(main,False)
-	client.publish(TOPIC_1,"Main Valve Closed")
+	client.publish(TOPIC_2,"Main Valve Closed")
 	return
 
 def vent_open():
 
 	GPIO.output(vnts,False)
-	client.publish(TOPIC_1,"Vents Opened")
+	client.publish(TOPIC_2,"Vents Opened")
 	return
 
 def vent_close():
 
 	GPIO.output(vnts,True)
-	client.publish(TOPIC_1,"Vents Closed")
+	client.publish(TOPIC_2,"Vents Closed")
 	return
 
 def launch():
 
 	GPIO.output(main,True)
 	GPIO.output(bstr,True)
-	client.publish(TOPIC_1,"Launch!")
+	client.publish(TOPIC_2,"Launch!")
 	return
 
 def abort():
@@ -327,7 +327,7 @@ def abort():
 	GPIO.output(bstr,False)
 	GPIO.output(main,False)
 	GPIO.output(vnts,True)
-	client.publish(TOPIC_1,"Launch Aborted")
+	client.publish(TOPIC_2,"Launch Aborted")
 	return
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#

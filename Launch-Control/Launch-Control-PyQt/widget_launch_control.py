@@ -18,14 +18,18 @@ class LaunchControl(QtWidgets.QWidget):
     def __init__(self):
 
         # initializes the Geometry and the overall window
-
+        # there are two topics with two sub-topics each. Each sub-topic has a name, of which describes who is PUBLISHING to that topic
+        # for example, the ESB pi publishes valve states on TOPIC_2 ("Valve_States/Servers") and the Client publishes commands on
+        # TOPIC_1 ("Valve_States/Clients")
         super().__init__()
 
         self.connection_status = False
         self.connection_status = False
         self.HOST = "192.168.1.228"
-        self.TOPIC_1 = "Valve_States"
-        self.TOPIC_2 = "Pressure_Readings"
+        self.TOPIC_1 = "Valve_States/Clients"
+        self.TOPIC_2 = "Valve_States/Servers"
+        self.TOPIC_3 = "Pressure_Readings/Clients"
+        self.TOPIC_4 = "Pressure_Readings/Servers"
 
         self.init_ui()
 
@@ -705,20 +709,21 @@ class LaunchControl(QtWidgets.QWidget):
     def get_info(self, data):
         # Receives information from the server and switches the label based on what the client is given
 
-        if data[0] == '1':
-            tdata = data[1:]
+        if data[2] == '1':
+            self.tdata = data[3:-1]
 
-        if data[0] == '2':
-            bdata = data[1:]
+        if data[2] == '2':
+            self.bdata = data[3:-1]
 
-        if data[0] == '3':
-            mdata = data[1:]
+        if data[2] == '3':
+            self.mdata = data[3:-1]
 
-        if data[0] == '4':
-            kdata = data[1:]
+        if data[2] == '4':
+            self.kdata = data[3:-1]
 
-        if data[0] == '5':
-            ldata = data[1:]
+        if data[2] == '5':
+            self.ldata = data[3:-1]
+
 
         #The following if statements call the label to be changed only if the server sends a message that contradicts the current status of the label 
         if self.bdata != self.breakwirechange.text():
@@ -790,7 +795,7 @@ class LaunchControl(QtWidgets.QWidget):
 
     def on_connect(self, client, userdata, flags, rc):
         print("Connected with result code "+str(rc))
-        self.client.subscribe(self.TOPIC_1)
+        self.client.subscribe(self.TOPIC_2)
         self.error = rc
         return self.error
 
@@ -800,7 +805,6 @@ class LaunchControl(QtWidgets.QWidget):
         client.loop_stop()
 
     def on_message(self, client, userdata, msg):
-        print(str(msg.payload))
         self.all_data = str(msg.payload)
         self.get_info(self.all_data)
         self.get_info_2(self.all_data)
