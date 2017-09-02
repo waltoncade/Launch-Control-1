@@ -43,7 +43,7 @@ def on_disconnect(client, userdata,rc=0):
 def on_message(client, userdata, msg):
 	calldata(str(msg.payload))
 
-client = mqtt.Client()
+client = mqtt.Client("server",True)
 client.on_connect = on_connect
 client.on_message = on_message
 #client.on_publish = on_publish
@@ -89,25 +89,6 @@ bstr = 24         # 24 is for the HACK HD camera actuation
 PoE_1 = 20		 # 20 is the PoE for Data Acquisition 1
 PoE_2 = 21		 # 21 is the PoE for Data Acquisition 2	
 
-GPIO.setup(ign1,GPIO.IN)
-GPIO.setup(ign2,GPIO.IN)
-GPIO.setup(vnts,GPIO.IN)
-GPIO.setup(main,GPIO.IN) 
-GPIO.setup(bstr,GPIO.IN) 
-GPIO.setup(PoE_1,GPIO.IN)
-GPIO.setup(PoE_2,GPIO.IN)
-
-# set all pin outputs to false initially so that they do not
-# actuate anything upon the program starting
-
-ign1_state = GPIO.input(ign1)
-ign2_state = GPIO.input(ign2)
-vnts_state = GPIO.input(vnts)
-main_state = GPIO.input(main)
-bstr_state = GPIO.input(bstr)
-PoE_1_state = GPIO.input(PoE_1)
-PoE_2_state = GPIO.input(PoE_2)
-
 GPIO.setup(ign1,GPIO.OUT)
 GPIO.setup(ign2,GPIO.OUT)
 GPIO.setup(vnts,GPIO.OUT)
@@ -116,13 +97,16 @@ GPIO.setup(bstr,GPIO.OUT)
 GPIO.setup(PoE_1,GPIO.OUT)
 GPIO.setup(PoE_2,GPIO.OUT)
 
-GPIO.output(ign1,ign1_state)
-GPIO.output(ign2,ign2_state)
-GPIO.output(vnts,vnts_state)
-GPIO.output(main,main_state)
-GPIO.output(bstr,bstr_state)
-GPIO.output(PoE_1,PoE_1_state)
-GPIO.output(PoE_2,PoE_2_state)
+# set all pin outputs to false initially so that they do not
+# actuate anything upon the program starting
+
+GPIO.output(ign1, GPIO.input(ign1))
+GPIO.output(ign2,GPIO.input(ign2))
+GPIO.output(vnts,GPIO.input(vnts))
+GPIO.output(main,GPIO.input(main))
+GPIO.output(bstr,GPIO.input(bstr))
+GPIO.output(PoE_1,GPIO.input(PoE_1))
+GPIO.output(PoE_2,GPIO.input(PoE_2))
 
 b_wire = 17      # 17 is the pin for the breakwire
 r_main = 13      # 13 is the pin for the main valve reed switch

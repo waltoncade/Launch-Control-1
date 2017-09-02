@@ -1,0 +1,9 @@
+DEBUG:root:Connection Successful at Sat Sep  2 13:58:45 2017
+DEBUG:root:Aborting at (13:58:46)
+DEBUG:root:abort at Sat Sep  2 13:58:46 2017
+DEBUG:root:Vents Closed at (13:58:48)
+DEBUG:root:vents_close at Sat Sep  2 13:58:48 2017
+DEBUG:root:Vents Closed at (13:58:49)
+DEBUG:root:vents_close at Sat Sep  2 13:58:49 2017
+DEBUG:root:Vents Opened at (13:58:51)
+DEBUG:root:vents_open at Sat Sep  2 13:58:51 2017
