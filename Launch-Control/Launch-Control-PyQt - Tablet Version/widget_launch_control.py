@@ -6,6 +6,7 @@ import subprocess
 from datetime import datetime
 from PyQt5 import QtCore, QtWidgets, QtGui, Qt
 import paho.mqtt.client as mqtt
+import ast
 
 #Sets up logging
 logname = time.strftime("log/LC_ClientLog(%H_%M_%S).log", time.localtime())
@@ -27,11 +28,13 @@ class LaunchControl(QtWidgets.QWidget):
         super().__init__()
 
         self.connection_status = False
-        self.HOST = "192.168.1.228"
+        self.HOST = "192.168.1.128"
         self.TOPIC_1 = "Valve_States/Clients"
         self.TOPIC_2 = "Valve_States/Servers"
-        self.TOPIC_3 = "Pressure_Readings/Clients"
-        self.TOPIC_4 = "Pressure_Readings/Servers"
+        self.TOPIC_3 = "Buttons/Servers"
+        self.TOPIC_LOX = ""
+        self.TOPIC_KERO = ''
+        self.TOPIC_HELIUM = ''
 
         self.init_ui()
 
@@ -149,6 +152,11 @@ class LaunchControl(QtWidgets.QWidget):
         statusboxhgps = createPicture(self, 'statusborder.png', -80, 360, 375, 40)
         statusbreak = createPicture(self, 'break.png', 100, 40, 100, 10)
         pressurebreak = createPicture(self, 'break.png', 600, 40, 100, 10)
+        break1 = createPicture(self, 'break.png', 525, 185, 100, 10)
+        break2 = createPicture(self, 'break.png', 525, 285, 100, 10)
+        #loxgauge = createPicture(self, 'loxgauge.png', 500, 250, 150, 150)
+        #kerogauge = createPicture(self, 'kerogauge.png', 500, 90, 150, 150)
+        #heliumgauge = createPicture(self, 'heliumgauge.png', 652, 250, 150, 150)
 
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         # Labels
@@ -163,6 +171,9 @@ class LaunchControl(QtWidgets.QWidget):
         self.ignitorstatuslabel = createLabel(self, 'Ignitor Status', 5, 265, 500, 50, 12, False, self.paletteblue)
         self.safteystatus = createLabel(self, 'Saftey Status', 5, 310, 500, 50, 12, False, self.paletteblue)
         self.hgpsstatuslabel = createLabel(self, 'HGPS', 5, 355, 500, 50, 12, False, self.paletteblue)
+        self.loxPressurelabel = createLabel(self, '      LOX \nPRESSURE', 500, 90, 500, 100, 18, False, self.paletteblack)
+        self.keroPressurelabel = createLabel(self, '    KERO \nPRESSURE', 500, 190, 500, 100, 18, False, self.palettered)
+        self.heliumPressurelabel = createLabel(self, '  HELIUM \nPRESSURE', 500, 290, 500, 100, 18, False, self.paletteblue)
 
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         # Sets up all of the labels that can change after the program is run.
@@ -227,9 +238,29 @@ class LaunchControl(QtWidgets.QWidget):
         self.logTextBox.setReadOnly(True)
         self.logTextBox.resize(200, 375)
         self.logTextBox.move(300, 40)
-        self.logTextBox.append("   ==Action Log==")
+        self.logTextBox.append("     ====Action Log====")
 
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+        self.lox_value = 0.0
+        self.kero_value = 0.0
+        self.helium_value = 0.0
+
+
+        self.loxRead = QtWidgets.QLCDNumber(self)
+        self.loxRead.setGeometry(QtCore.QRect(100, 100, 160, 80))
+        self.loxRead.move(635,100)
+        self.loxRead.display(float(self.lox_value))
+        self.keroRead = QtWidgets.QLCDNumber(self)
+        self.keroRead.setGeometry(QtCore.QRect(100, 100, 160, 80))
+        self.keroRead.move(635,200)
+        self.keroRead.display(float(self.kero_value))
+        self.heliumRead = QtWidgets.QLCDNumber(self)
+        self.heliumRead.setGeometry(QtCore.QRect(100, 100, 160, 80))
+        self.heliumRead.move(635,300)
+        self.heliumRead.display(float(self.helium_value))
+
+        #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
         self.setLayout(grid)
         self.homeButtons()
@@ -269,7 +300,7 @@ class LaunchControl(QtWidgets.QWidget):
         self.hgpsonBtn = createBtn(self, "HGPS On", 480, 415, 160, 60, self.font3, self.hgpson_app)
         self.hgpsoffBtn = createBtn(self, "HGPS Off", 640, 415, 160, 60, self.font3, self.hgpsoff_app)
         self.statusBtn = createBtn(self, "Read Statuses", 0, 50, 300, 35, self.font3, self.read_app)
-        self.pressureBtn = createBtn(self, "Read Pressures", 500, 50, 300, 35, self.font3, self.read_app)
+        self.pressureBtn = createBtn(self, "Read Pressures", 500, 50, 300, 35, self.font3, self.read_app2)
 
 
     def paintEvent(self, e):
@@ -314,6 +345,17 @@ class LaunchControl(QtWidgets.QWidget):
             self.infotimer.timeout.connect(self.send_info_stat)
             self.infotimer.setInterval(200)
             self.infotimer.start()
+            self.logTextBox.append("  >  Reading{}".format(time.strftime("\t     -\t(%H:%M:%S)", time.localtime())))
+            logger.debug("Reading at {}".format(time.strftime("(%H:%M:%S)", time.localtime())))
+            self.client.publish(self.TOPIC_1,b"Read_Valves")
+
+        elif self.connection_status == False:
+            QtWidgets.QMessageBox.information(self, 'Connection Results', 'You are not connected, please connect and try again.')
+
+    def read_app2(self):
+        # Application that reads the status's for the pressure states (Used when Read Pressure's Button is pressed)
+        if self.connection_status == True:
+            self.client.subscribe(self.TOPIC_4)
             self.logTextBox.append("  >  Reading{}".format(time.strftime("\t     -\t(%H:%M:%S)", time.localtime())))
             logger.debug("Reading at {}".format(time.strftime("(%H:%M:%S)", time.localtime())))
 
@@ -468,26 +510,21 @@ class LaunchControl(QtWidgets.QWidget):
 
             self.client.publish(self.TOPIC_1,b'LOX_status')
 
+            self.client.publish(self.TOPIC_1,b"Read_Valves")
+
         except:
             print("Not Connected. Make sure server is: {}. Topic is: {}. And that you are connected to the right Wifi.".format(self.HOST, self.TOPIC_1))
 
     def get_info(self, data):
         # Receives information from the server and switches the label based on what the client is given
 
-        if data[2] == '1':
-            self.tdata = data[3:-1]
+        package = str(eval(data),"utf-8")
+        package = ast.literal_eval(package)
 
-        if data[2] == '2':
-            self.bdata = data[3:-1]
-
-        if data[2] == '3':
-            self.mdata = data[3:-1]
-
-        if data[2] == '4':
-            self.kdata = data[3:-1]
-
-        if data[2] == '5':
-            self.ldata = data[3:-1]
+        self.bdata = str(package["bstatus"])
+        self.mdata = str(package["mstatus"])
+        self.kdata = str(package["kstatus"])
+        self.ldata = str(package["lstatus"])
 
         #The following if statements call the label to be changed only if the server sends a message that contradicts the current status of the label 
         if self.bdata != self.breakwirechange.text():
@@ -560,6 +597,7 @@ class LaunchControl(QtWidgets.QWidget):
     def on_connect(self, client, userdata, flags, rc):
         print("Connected with result code "+str(rc))
         self.client.subscribe(self.TOPIC_2)
+        self.client.subscribe(self.TOPIC_3)
         self.error = rc
         return self.error
 
@@ -569,10 +607,26 @@ class LaunchControl(QtWidgets.QWidget):
         self.logTextBox.append("  >  Connection Lost...{}".format(time.strftime("\t     -\t(%H:%M:%S)", time.localtime())))
         client.loop_stop()
 
-    def on_message(self, client, userdata, msg):
-        self.all_data = str(msg.payload)
-        self.get_info(self.all_data)
-        self.get_info_2(self.all_data)
+    def on_message_valves(self, client, userdata, msg):
+        self.valve_data = str(msg.payload)
+        self.get_info(self.valve_data)
+
+    def on_message_buttons(self, client, userdata, msg):
+        self.buttons_data = str(msg.payload)
+        print(self.buttons_data)
+        self.get_info_2(self.buttons_data)
+
+    def on_message_lox(self, client, userdata, msg):
+        self.lox_value = str(msg.payload)
+        self.loxRead.display(float(self.lox_value))
+
+    def on_message_kero(self, client, userdata, msg):
+        self.kero_value = str(msg.payload)
+        self.keroRead.display(float(self.kero_value))
+        
+    def on_message_helium(self, client, userdata, msg):
+        self.helium_value = str(msg.payload)
+        self.heliumRead.display(float(self.helium_value))
 
     def connect_app(self):
         # Application that connects the client to the server (Used when Connect Button is pressed)
@@ -581,11 +635,16 @@ class LaunchControl(QtWidgets.QWidget):
         try:
             self.client = mqtt.Client()
             self.client.on_connect = self.on_connect
-            self.client.on_message = self.on_message
+            #self.client.on_message = self.on_message
             #self.client.on_publish = self.on_publish
+            self.client.message_callback_add(self.TOPIC_2, self.on_message_valves)
+            self.client.message_callback_add(self.TOPIC_3, self.on_message_buttons)
+            self.client.message_callback_add(self.TOPIC_LOX, self.on_message_lox)
+            self.client.message_callback_add(self.TOPIC_KERO, self.on_message_kero)
+            self.client.message_callback_add(self.TOPIC_HELIUM, self.on_message_helium)
             self.client.on_disconnect = self.on_disconnect
             self.client.connect(self.HOST, 1883, 60)
-            QtWidgets.QMessageBox.information(self, 'Connection Results', 'Socket Successfully Bound.\nClick "Read Statuses " to start')
+            QtWidgets.QMessageBox.information(self, 'Connection Results', 'Client Connected to Broker.\nClick "Read Statuses " to start')
             self.connection_status = True
             self.sdsulogo.setPixmap(QtGui.QPixmap('pictures/sdsu2green.png'))
             self.redcircle.setPixmap(QtGui.QPixmap('pictures/greencircle.png'))
@@ -614,5 +673,30 @@ class LaunchControl(QtWidgets.QWidget):
             sys.exit()
         else:
             self.logTextBox.append("> Exit Stopped{}".format(time.strftime("\t-         (%H:%M:%S)", time.localtime())))
+
+
+
+    '''
+    self.TOPIC_4 = "Pressure_States/Servers"
+
+    self.client.message_callback_add(self.TOPIC_4, self.on_message_pressures)
+
+    def on_message_pressures(self, client, userdata, msg):
+        self.pressure_data = str(msg.payload)
+        self.pressureData(self.pressure_data)
+
+    def pressureData(self, data):
+
+        package = str(eval(data),"utf-8")
+        package = ast.literal_eval(package)
+
+        self.lox_value = str(package["d1"])
+        self.kero_value = str(package["d2"])
+        self.helium_value = str(package["d3"])
+
+        self.loxRead.display(float(self.lox_value))
+        self.keroRead.display(float(self.kero_value))
+        self.heliumRead.display(float(self.helium_value))
+    '''
 
 

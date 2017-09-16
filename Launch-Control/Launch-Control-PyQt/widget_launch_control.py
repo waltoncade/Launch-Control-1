@@ -6,6 +6,7 @@ import subprocess
 from datetime import datetime
 from PyQt5 import QtCore, QtWidgets, QtGui, Qt, QtMultimedia
 import paho.mqtt.client as mqtt
+import ast
 
 logname = time.strftime("log/LC_ClientLog(%H_%M_%S).log", time.localtime())
 logger = logging.getLogger("")
@@ -25,11 +26,10 @@ class LaunchControl(QtWidgets.QWidget):
 
         self.connection_status = False
         self.connection_status = False
-        self.HOST = "192.168.1.228"
+        self.HOST = "192.168.1.128"
         self.TOPIC_1 = "Valve_States/Clients"
         self.TOPIC_2 = "Valve_States/Servers"
-        self.TOPIC_3 = "Pressure_Readings/Clients"
-        self.TOPIC_4 = "Pressure_Readings/Servers"
+        self.TOPIC_3 = "Buttons/Servers"
 
         self.init_ui()
 
@@ -465,6 +465,7 @@ class LaunchControl(QtWidgets.QWidget):
             self.infotimer.timeout.connect(self.send_info_stat)
             self.infotimer.setInterval(200)
             self.infotimer.start()
+            self.client.publish(self.TOPIC_1,b"Read_Valves")
             self.logTextBox.append(" > Starting Get Info Timer{}".format(time.strftime("\t     -\t(%H:%M:%S)", time.localtime())))
             logger.debug("Started Get Info Timer at {}".format(time.strftime("(%H:%M:%S)", time.localtime())))
 
@@ -703,51 +704,40 @@ class LaunchControl(QtWidgets.QWidget):
 
             self.client.publish(self.TOPIC_1,b'LOX_status')
 
+            self.client.publish(self.TOPIC_1,b"Read_Valves")
+
         except:
             print("Not Connected. Make sure server is: {}. Topic is: {}. And that you are connected to the right Wifi.".format(self.HOST, self.TOPIC_1))
 
     def get_info(self, data):
         # Receives information from the server and switches the label based on what the client is given
+        package = str(eval(data),"utf-8")
+        package = ast.literal_eval(package)
 
-        if data[2] == '1':
-            self.tdata = data[3:-1]
-
-        if data[2] == '2':
-            self.bdata = data[3:-1]
-
-        if data[2] == '3':
-            self.mdata = data[3:-1]
-
-        if data[2] == '4':
-            self.kdata = data[3:-1]
-
-        if data[2] == '5':
-            self.ldata = data[3:-1]
-
+        self.bdata = str(package["bstatus"])
+        self.mdata = str(package["mstatus"])
+        self.kdata = str(package["kstatus"])
+        self.ldata = str(package["lstatus"])
 
         #The following if statements call the label to be changed only if the server sends a message that contradicts the current status of the label 
         if self.bdata != self.breakwirechange.text():
             self.switch_label("bwire")
             print("Break Wire Changed:")
-            print(self.bdata)
             logger.debug("bwire_status of {} at {}".format(str(self.bdata),time.asctime()))
 
         if self.mdata != self.mainValvechange.text():
             self.switch_label('main')
             print("Main Changed")
-            print(self.mdata)
             logger.debug("main_status of {} at {}".format(str(self.mdata),time.asctime()))
 
         if self.kdata != self.keroValvechange.text():
             self.switch_label('kero')
             print("Kero Changed")
-            print(self.kdata)
             logger.debug("kero_status of {} at {}".format(str(self.kdata),time.asctime()))
 
         if self.ldata != self.loxValvechange.text():
             self.switch_label('lox')
             print("Lox Changed")
-            print(self.ldata)
             logger.debug("lox_status of {} at {}".format(str(self.ldata),time.asctime()))
 
     def switch_label(self,label):
@@ -796,6 +786,7 @@ class LaunchControl(QtWidgets.QWidget):
     def on_connect(self, client, userdata, flags, rc):
         print("Connected with result code "+str(rc))
         self.client.subscribe(self.TOPIC_2)
+        self.client.subscribe(self.TOPIC_3)
         self.error = rc
         return self.error
 
@@ -804,10 +795,14 @@ class LaunchControl(QtWidgets.QWidget):
         self.logTextBox.append("  >  Connection Lost...{}".format(time.strftime("\t     -\t(%H:%M:%S)", time.localtime())))
         client.loop_stop()
 
-    def on_message(self, client, userdata, msg):
-        self.all_data = str(msg.payload)
-        self.get_info(self.all_data)
-        self.get_info_2(self.all_data)
+    def on_message_valves(self, client, userdata, msg):
+        self.valve_data = str(msg.payload)
+        self.get_info(self.valve_data)
+
+    def on_message_buttons(self, client, userdata, msg):
+        self.button_data = str(msg.payload)
+        print(self.button_data)
+        self.get_info_2(self.button_data)
 
     def connect_app(self):
         # Application that connects the client to the server (Used when Connect Button is pressed)
@@ -816,11 +811,11 @@ class LaunchControl(QtWidgets.QWidget):
         try:
             self.client = mqtt.Client()
             self.client.on_connect = self.on_connect
-            self.client.on_message = self.on_message
-            #self.client.on_publish = self.on_publish
+            self.client.message_callback_add(self.TOPIC_2, self.on_message_valves)
+            self.client.message_callback_add(self.TOPIC_3, self.on_message_buttons)
             self.client.on_disconnect = self.on_disconnect
             self.client.connect(self.HOST, 1883, 60)
-            QtWidgets.QMessageBox.information(self, 'Connection Results', 'Socket Successfully Bound.\nClick "Read Statuses " to start')
+            QtWidgets.QMessageBox.information(self, 'Connection Results', 'Client Connected to Broker.\nClick "Read Statuses " to start')
             self.connection_status = True
             self.connectionstatus.setText('Connected')
             self.logTextBox.append("  >  Connected{}".format(time.strftime("\t     -\t(%H:%M:%S)", time.localtime())))
